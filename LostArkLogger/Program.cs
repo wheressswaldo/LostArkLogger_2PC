@@ -13,7 +13,7 @@ namespace LostArkLogger
 {
     internal static class Program
     {
-        //public static bool IsConsole = Console.IsErrorRedirected;//OpenStandardInput(1) != Stream.Null;
+        //public static bool IsConsole = OpenStandardInput(1) != Stream.Null;
         // https://stackoverflow.com/questions/1188658/how-can-a-c-sharp-windows-console-application-tell-if-it-is-run-interactively
         [DllImport("kernel32.dll")]
         static extern IntPtr GetModuleHandleW(IntPtr lpModuleName);
@@ -23,10 +23,11 @@ namespace LostArkLogger
             p += Marshal.ReadInt32(p, 0x3C);                // RVA of COFF/PE within DOS header
             return (Subsystem)Marshal.ReadInt16(p + 0x5C);  // PE offset to 'Subsystem' value
         }
-        public static bool IsConsole => GetSubsystem() == Subsystem.WindowsCui;
+        public static bool IsConsole = GetSubsystem() == Subsystem.WindowsCui;
         [STAThread]
         static void Main(string[] args)
         {
+            if (args != null && args.Length > 0) IsConsole = true;
             Properties.Settings.Default.Providers.Clear();
             Bluegrams.Application.PortableSettingsProvider.SettingsFileName = AppDomain.CurrentDomain.FriendlyName + ".ini";
             Bluegrams.Application.PortableSettingsProvider.ApplyProvider(Properties.Settings.Default);
