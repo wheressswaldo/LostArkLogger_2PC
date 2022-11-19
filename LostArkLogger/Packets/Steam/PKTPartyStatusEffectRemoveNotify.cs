@@ -10,6 +10,7 @@ namespace LostArkLogger
             b_0 = reader.ReadByte();
             u64_0 = reader.ReadUInt64();
             PartyId = reader.ReadUInt64();
+            u64_0 = reader.ReadUInt64();
         }
     }
 }
