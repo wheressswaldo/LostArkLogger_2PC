@@ -672,7 +672,11 @@ namespace LostArkLogger
                     else return;
                 }
                 Logger.DoDebugLog(bytes);
-                ProcessPacket(bytes.ToList());
+                try {
+                    ProcessPacket(bytes.ToList());
+                } catch (Exception e) {
+                    // Console.WriteLine("Failure during processing of packet: " + e);
+                }
             }
         }
         void Device_OnPacketArrival_pcap(object sender, PacketCapture evt)
@@ -703,7 +707,11 @@ namespace LostArkLogger
                         else return;
                     }
                     Logger.DoDebugLog(bytes);
-                    ProcessPacket(bytes.ToList());
+                    try {
+                        ProcessPacket(bytes.ToList());
+                    } catch (Exception e) {
+                        // Console.WriteLine("Failure during processing of packet: " + e);
+                    }
                 }
             }
         }
