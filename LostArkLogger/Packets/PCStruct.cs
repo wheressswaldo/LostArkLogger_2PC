@@ -30,7 +30,7 @@ namespace LostArkLogger
             Unk5 = reader.ReadByte();
             statusEffectDatas = new StatusEffectDatas(reader);
             PlayerId = reader.ReadUInt64();
-            Level = reader.ReadUInt32();
+            Level = reader.ReadUInt16();
             Unk9 = reader.ReadInt32();
             Unk10 = reader.ReadByte();
             ClassId = reader.ReadUInt16();
