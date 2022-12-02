@@ -34,7 +34,7 @@ namespace LostArkLogger
         public void InitPc(PKTInitPC packet)
         {
             var statusEffectList = GetStatusEffectList(packet.PlayerId);
-            foreach (var statusEffect in packet.statusEffectDatas.Datas)
+            foreach (var statusEffect in packet.statusEffectDatas)
             {
                 ProcessStatusEffectData(statusEffect, packet.PlayerId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Local);
             }
@@ -43,37 +43,41 @@ namespace LostArkLogger
 
         public void NewNpc(PKTNewNpc packet)
         {
-            var statusEffectList = GetStatusEffectList(packet.NpcStruct.ObjectId);
-            foreach (var statusEffect in packet.NpcStruct.statusEffectDatas.Datas)
+            var statusEffectList = GetStatusEffectList(packet.npcStruct.NpcId);
+            foreach (var statusEffect in packet.npcStruct.statusEffectDatas)
             {
-                ProcessStatusEffectData(statusEffect, packet.NpcStruct.ObjectId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Local);
+                ProcessStatusEffectData(statusEffect, packet.npcStruct.NpcId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Local);
             }
             OnChange?.Invoke();
         }
 
         public void NewPc(PKTNewPC packet)
         {
-            var statusEffectList = GetStatusEffectList(packet.PCStruct.CharacterId);
-            foreach (var statusEffect in packet.PCStruct.statusEffectDatas.Datas)
+            var statusEffectList = GetStatusEffectList(packet.pCStruct.PartyId);
+            foreach (var statusEffect in packet.pCStruct.statusEffectDatas)
             {
-                ProcessStatusEffectData(statusEffect, packet.PCStruct.CharacterId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Party);
+                ProcessStatusEffectData(statusEffect, packet.pCStruct.PartyId, statusEffect.SourceId, statusEffectList, StatusEffect.StatusEffectType.Party);
             }
             OnChange?.Invoke();
         }
 
         private void ProcessStatusEffectData(StatusEffectData effectData, UInt64 targetId, UInt64 sourceId, ConcurrentDictionary<UInt64, StatusEffect> effectList, StatusEffect.StatusEffectType effectType)
         {
-            Entity sourceEntity = parser.GetSourceEntity(sourceId);
-            var amount = (effectData.hasValue && effectData.Value != null && effectData.Value.Length == 4) ? BitConverter.ToInt32(effectData.Value, 0) : 0;
-            var statusEffect = new StatusEffect { Started = DateTime.UtcNow, StatusEffectId = effectData.StatusEffectId, InstanceId = effectData.EffectInstanceId, SourceId = sourceEntity.EntityId, TargetId = targetId, Type = effectType, Value = amount };
-            // end this buf now, it got refreshed
-            if (effectList.TryRemove(statusEffect.InstanceId, out var oldStatusEffect))
+            try
             {
-                var duration = DateTime.UtcNow - oldStatusEffect.Started;
-                OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
-            }
-            effectList.TryAdd(statusEffect.InstanceId, statusEffect);
-            OnStatusEffectStarted(statusEffect);
+                Entity sourceEntity = parser.GetSourceEntity(sourceId);
+                if (effectData.Value == null) return;
+                var amount = (effectData.hasValue > 0 && effectData.Value.Length == 4) ? BitConverter.ToInt32(effectData.Value, 0) : 0;
+                var statusEffect = new StatusEffect { Started = DateTime.UtcNow, StatusEffectId = effectData.StatusEffectId, InstanceId = effectData.EffectInstanceId, SourceId = sourceEntity.EntityId, TargetId = targetId, Type = effectType, Value = amount };
+                // end this buf now, it got refreshed
+                if (effectList.TryRemove(statusEffect.InstanceId, out var oldStatusEffect))
+                {
+                    var duration = DateTime.UtcNow - oldStatusEffect.Started;
+                    OnStatusEffectEnded?.Invoke(oldStatusEffect, duration);
+                }
+                effectList.TryAdd(statusEffect.InstanceId, statusEffect);
+                OnStatusEffectStarted(statusEffect);
+            } catch(Exception) { }
         }
 
         public void Add(PKTStatusEffectAddNotify effect)
@@ -85,21 +89,21 @@ namespace LostArkLogger
 
         public void PartyAdd(PKTPartyStatusEffectAddNotify effect)
         {
-            foreach (var statusEffect in effect.statusEffectDatas.Datas)
+            foreach (var statusEffect in effect.statusEffectDatas)
             {
                 var applierId = statusEffect.SourceId;
                 if (effect.PlayerIdOnRefresh != 0x0)
                     applierId = effect.PlayerIdOnRefresh;
-                var statusEffectList = GetStatusEffectList(effect.CharacterId);
-                ProcessStatusEffectData(statusEffect, effect.CharacterId, applierId, statusEffectList, StatusEffect.StatusEffectType.Party);
+                var statusEffectList = GetStatusEffectList(effect.PartyId);
+                ProcessStatusEffectData(statusEffect, effect.PartyId, applierId, statusEffectList, StatusEffect.StatusEffectType.Party);
             }
             OnChange?.Invoke();
         }
 
         public void PartyRemove(PKTPartyStatusEffectRemoveNotify effect)
         {
-            var statusEffectList = GetStatusEffectList(effect.CharacterId);
-            foreach (var effectInstanceId in effect.statusEffectIds.Ids)
+            var statusEffectList = GetStatusEffectList(effect.PartyId);
+            foreach (var effectInstanceId in effect.StatusEffectIds)
             {
                 if (statusEffectList.TryRemove(effectInstanceId, out var oldStatusEffect))
                 {
@@ -113,7 +117,7 @@ namespace LostArkLogger
         public void Remove(PKTStatusEffectRemoveNotify effect)
         {
             var statusEffectList = GetStatusEffectList(effect.ObjectId);
-            foreach (var effectInstanceId in effect.statusEffectIds.Ids)
+            foreach (var effectInstanceId in effect.InstanceIds)
             {
                 if (statusEffectList.TryRemove(effectInstanceId, out var oldStatusEffect))
                 {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using LostArkLogger.Types;
 
 namespace LostArkLogger
 {
@@ -173,18 +172,6 @@ namespace LostArkLogger
 
             return bytes;
         }
-        public Int16 ReadInt16()
-        {
-            return (Int16)ReadBits(16);
-        }
-        public Int32 ReadInt32()
-        {
-            return (Int32)ReadBits(32);
-        }
-        public Int64 ReadInt64()
-        {
-            return (Int64)ReadBits(64);
-        }
         public UInt16 ReadUInt16()
         {
             return (UInt16)ReadBits(16);
@@ -205,26 +192,6 @@ namespace LostArkLogger
         public void Dispose()
         {
             Data = null;
-        }
-
-        internal Vector3F ReadVector3F()
-        {
-            return new Vector3F(ReadUInt64());
-        }
-
-        internal Angle ReadAngle()
-        {
-            return new Angle(ReadUInt16());
-        }
-
-        internal void Skip(int v)
-        {
-            SkipBits(8 * v);
-        }
-
-        internal bool ReadBool()
-        {
-            return ReadByte() == 1;
         }
     }
 }

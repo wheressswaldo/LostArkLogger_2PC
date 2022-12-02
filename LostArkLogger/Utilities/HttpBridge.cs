@@ -1,6 +1,7 @@
 ﻿using LostArkLogger.Utilities;
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -17,65 +18,51 @@ namespace LostArkLogger
 
         public string[] args;
 
-        public void Start()
+        //todo : add loa detail compatibility
+
+        public void Start(string nicName)
         {
             EnqueueMessage(0, "Arguments: " + String.Join(",", args));
 
             // Configure the monitor with command-line arguments.
-            var RegionIndex = Array.IndexOf(args, "--Region");
-            var NpcapIndex = Array.IndexOf(args, "--UseNpcap");
+            //var RegionIndex = Array.IndexOf(args, "--Region");
+            //var NpcapIndex = Array.IndexOf(args, "--UseNpcap");
+            //-> not used, Npcap only
             var PortIndex = Array.IndexOf(args, "--Port");
-            var CustomLogPathIndex = Array.IndexOf(args, "--CustomLogPath");
 
             if (PortIndex != -1)
             {
                 Port = uint.Parse(args[PortIndex + 1]);
             }
 
-            Properties.Settings.Default.Region = Region.Steam;
+            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string loaPath = Path.Combine(documentsPath, "LOA Details");
+            string logsPath = Path.Combine(loaPath, "Logs");
 
-            if (RegionIndex != -1)
-            {
-                if (args[RegionIndex + 1] == "Russia")
-                {
-                    //Properties.Settings.Default.Region = Region.Russia;
-                    EnqueueMessage(0, "Using Russia client!");
-                }
-                else if (args[RegionIndex + 1] == "Korea")
-                {
-                    Properties.Settings.Default.Region = Region.Korea;
-                    EnqueueMessage(0, "Using Korea client!");
-                }
-            }
-
-            Properties.Settings.Default.Save();
+            if (!Directory.Exists(loaPath)) Directory.CreateDirectory(loaPath);
+            if (!Directory.Exists(logsPath)) Directory.CreateDirectory(logsPath);
 
             Oodle.Init();
 
-            string logPath = "";
-            if (CustomLogPathIndex != -1)
-            {
-                logPath = args[CustomLogPathIndex + 1];
-                Logger.UpdateLogPath(logPath);
-                Logger.StartNewLogFile();
-            }
-
             var sniffer = new Parser();
 
-            if (NpcapIndex != -1)
-            {
-                sniffer.use_npcap = true;
-                sniffer.InstallListener();
-                if (!sniffer.use_npcap)
-                {
-                    EnqueueMessage(0, "Failed to initialize Npcap, using raw sockets instead. You can try to restart the app.");
-                }
-                else
-                {
-                    EnqueueMessage(0, "Using Npcap!");
-                }
+            //if (RegionIndex != -1)
+            //{
+            //    if (args[RegionIndex + 1] == "Russia")
+            //    {
+            //        sniffer.region = Properties.Settings.Default.Region.Russia;
+            //        EnqueueMessage("message", "Using Russia client!");
+            //    }
+            //    else if (args[RegionIndex + 1] == "Korea")
+            //    {
+            //        sniffer.region = Properties.Settings.Default.Region.Korea;
+            //        EnqueueMessage("message", "Using Korea client!");
+            //    }
+            //}
 
-            }
+            sniffer.use_npcap = true;
+            sniffer.isConsoleMode = true;
+            sniffer.startParse(nicName);
 
             Logger.onLogAppend += (string log) =>
             {
@@ -106,9 +93,6 @@ namespace LostArkLogger
             {
                 if (this.messageQueue.TryDequeue(out var sendMessage))
                 {
-#if DEBUG
-                    Console.WriteLine("Sending: " + sendMessage);
-#endif
                     try
                     {
                         HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:" + Port);
@@ -124,7 +108,6 @@ namespace LostArkLogger
                         Console.WriteLine("Trying to requeue message");
                         this.messageQueue.Enqueue(sendMessage);
                     }
-
                 }
                 else
                 {
